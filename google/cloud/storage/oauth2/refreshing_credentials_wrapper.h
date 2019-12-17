@@ -15,6 +15,7 @@
 #ifndef GOOGLE_CLOUD_CPP_GOOGLE_CLOUD_STORAGE_OAUTH2_REFRESHING_CREDENTIALS_WRAPPER_H_
 #define GOOGLE_CLOUD_CPP_GOOGLE_CLOUD_STORAGE_OAUTH2_REFRESHING_CREDENTIALS_WRAPPER_H_
 
+#include "glog/logging.h"
 #include "google/cloud/status.h"
 #include "google/cloud/status_or.h"
 #include "google/cloud/storage/version.h"
@@ -41,15 +42,21 @@ class RefreshingCredentialsWrapper {
   StatusOr<std::string> AuthorizationHeader(
       std::chrono::system_clock::time_point now,
       RefreshFunctor refresh_fn) const {
+    LOG(INFO) << "RefreshingCredentialsWrapper::AuthorizationHeader()...";
     if (IsValid(now)) {
+    LOG(INFO) << "RefreshingCredentialsWrapper::AuthorizationHeader() is valid.. returning token " << temporary_token.token;
       return temporary_token.token;
     }
 
+    LOG(INFO) << "RefreshingCredentialsWrapper::AuthorizationHeader() refreshing.. about to call refresh_fn";
     StatusOr<TemporaryToken> new_token = refresh_fn();
+    LOG(INFO) << "RefreshingCredentialsWrapper::AuthorizationHeader() done refreshing. new token status: " << new_token.status().message();
     if (new_token) {
       temporary_token = *std::move(new_token);
+      LOG(INFO) << "RefreshingCredentialsWrapper::AuthorizationHeader() returning token " << temporary_token.token;
       return temporary_token.token;
     }
+    LOG(INFO) << "RefreshingCredentialsWrapper::AuthorizationHeader() something went wrong, returning status";
     return new_token.status();
   }
 

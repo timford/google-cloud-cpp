@@ -51,6 +51,7 @@ cc_library(
         "@com_github_curl_curl//:curl",
         "@com_github_google_crc32c//:crc32c",
         "@com_github_googleapis_google_cloud_cpp_common//google/cloud:google_cloud_cpp_common",
+        "@com_google_glog//:glog",
     ],
 )
 

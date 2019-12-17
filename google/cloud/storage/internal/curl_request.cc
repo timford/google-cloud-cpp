@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "glog/logging.h"
 #include "google/cloud/storage/internal/curl_request.h"
 #include <iostream>
 
@@ -23,19 +24,25 @@ namespace internal {
 CurlRequest::CurlRequest() : headers_(nullptr, &curl_slist_free_all) {}
 
 StatusOr<HttpResponse> CurlRequest::MakeRequest(std::string const& payload) {
+  LOG(INFO) << "CurlRequest::MakeRequest() with payload \n" << payload;
   if (!payload.empty()) {
     handle_.SetOption(CURLOPT_POSTFIELDSIZE, payload.length());
     handle_.SetOption(CURLOPT_POSTFIELDS, payload.c_str());
   }
+  LOG(INFO) << "CurlRequest::MakeRequest() about to call EasyPerform";
   auto status = handle_.EasyPerform();
+  LOG(INFO) << "CurlRequest::MakeRequest() done with EasyPerform, status is " << status.message();
   if (!status.ok()) {
     return status;
   }
   handle_.FlushDebug(__func__);
   auto code = handle_.GetResponseCode();
   if (!code.ok()) {
+    LOG(INFO) << "CurlRequest::MakeRequest() could not get response code, status is " << code.status().message();
     return std::move(code).status();
   }
+  LOG(INFO) << "CurlRequest::MakeRequest() response code is " << code.value();
+  LOG(INFO) << "-------------------------------------\n---------------------------------------\nCurlRequest::MakeRequest() returning with response payload:\n" << response_payload_;
   return HttpResponse{code.value(), std::move(response_payload_),
                       std::move(received_headers_)};
 }

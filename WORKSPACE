@@ -15,6 +15,8 @@
 workspace(name = "com_github_googleapis_google_cloud_cpp")
 
 load("//bazel:google_cloud_cpp_deps.bzl", "google_cloud_cpp_deps")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 google_cloud_cpp_deps()
 
@@ -47,3 +49,26 @@ apple_rules_dependencies()
 load("@build_bazel_apple_support//lib:repositories.bzl", "apple_support_dependencies")
 
 apple_support_dependencies()
+
+# glog
+# TODO(b/134946989) Switch to using Abseil logging
+git_repository(
+    name = "com_google_glog",
+    commit = "e364e754a60af6f0eadd9902c4e76ecc060fee9c",
+    remote = "https://github.com/google/glog.git",
+    shallow_since = "1540324206 +0200",
+)
+
+# gflags
+# Used by glog.
+# TODO(b/134946989) Can go away when glog goes away.
+http_archive(
+    name = "com_github_gflags_gflags",
+    sha256 = "6e16c8bc91b1310a44f3965e616383dbda48f83e8c1eaa2370a215057b00cabe",
+    strip_prefix = "gflags-77592648e3f3be87d6c7123eb81cbad75f9aef5a",
+    urls = [
+        "https://mirror.bazel.build/github.com/gflags/gflags/archive/77592648e3f3be87d6c7123eb81cbad75f9aef5a.tar.gz",
+        "https://github.com/gflags/gflags/archive/77592648e3f3be87d6c7123eb81cbad75f9aef5a.tar.gz",
+    ],
+)
+

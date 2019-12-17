@@ -15,6 +15,7 @@
 #ifndef GOOGLE_CLOUD_CPP_GOOGLE_CLOUD_STORAGE_OAUTH2_COMPUTE_ENGINE_CREDENTIALS_H_
 #define GOOGLE_CLOUD_CPP_GOOGLE_CLOUD_STORAGE_OAUTH2_COMPUTE_ENGINE_CREDENTIALS_H_
 
+#include "glog/logging.h"
 #include "google/cloud/internal/getenv.h"
 #include "google/cloud/status.h"
 #include "google/cloud/storage/internal/compute_engine_util.h"
@@ -81,18 +82,28 @@ class ComputeEngineCredentials : public Credentials {
   explicit ComputeEngineCredentials() : ComputeEngineCredentials("default") {}
 
   explicit ComputeEngineCredentials(std::string const& service_account_email)
-      : clock_(), service_account_email_(service_account_email) {}
+      : clock_(), service_account_email_(service_account_email) {
+        LOG(INFO) << "ComputeEngineCredentials created with service_account_email " << service_account_email;
+      }
 
   StatusOr<std::string> AuthorizationHeader() override {
+    LOG(INFO) << "ComputeEngineCredentials::AuthorizationHeader() before lock";
     std::unique_lock<std::mutex> lock(mu_);
-    return refreshing_creds_.AuthorizationHeader(clock_.now(),
+    LOG(INFO) << "ComputeEngineCredentials::AuthorizationHeader() after lock";
+    auto retvalue = refreshing_creds_.AuthorizationHeader(clock_.now(),
                                                  [this] { return Refresh(); });
+    LOG(INFO) << "ComputeEngineCredentials::AuthorizationHeader() done, returning";
+    return retvalue;
   }
 
   std::string AccountEmail() const override {
+    LOG(INFO) << "ComputeEngineCredentials::AccountEmail() before lock";
     std::unique_lock<std::mutex> lock(mu_);
+    LOG(INFO) << "ComputeEngineCredentials::AccountEmail() after lock";
     // Force a refresh on the account info.
     RetrieveServiceAccountInfo();
+    LOG(INFO) << "ComputeEngineCredentials::AccountEmail() after doing RetrieveServiceAccountInfo().. about to return service_account_email_=" << service_account_email_;
+    // Force a refresh on the account info.
     return service_account_email_;
   }
 
@@ -106,7 +117,9 @@ class ComputeEngineCredentials : public Credentials {
    * email address if the credential has not been refreshed yet.
    */
   std::string service_account_email() const {
+    LOG(INFO) << "ComputeEngineCredentials::service_account_email() before lock";
     std::unique_lock<std::mutex> lock(mu_);
+    LOG(INFO) << "ComputeEngineCredentials::service_account_email() after lock";
     return service_account_email_;
   }
 
@@ -118,7 +131,9 @@ class ComputeEngineCredentials : public Credentials {
    * set if the credential has not been refreshed yet.
    */
   std::set<std::string> scopes() const {
+    LOG(INFO) << "ComputeEngineCredentials::scopes() before lock";
     std::unique_lock<std::mutex> lock(mu_);
+    LOG(INFO) << "ComputeEngineCredentials::scopes() after lock";
     return scopes_;
   }
 
@@ -131,9 +146,13 @@ class ComputeEngineCredentials : public Credentials {
    */
   StatusOr<storage::internal::HttpResponse> DoMetadataServerGetRequest(
       std::string const& path, bool recursive) const {
+    LOG(INFO) << "ComputeEngineCredentials::DoMetadataServerGetRequest() before lock... path=" << path << ", recursive=" << recursive;
+    std::unique_lock<std::mutex> lock(mu_);
+    LOG(INFO) << "ComputeEngineCredentials::DoMetadataServerGetRequest() after lock... ";
     // Allows mocking the metadata server hostname for testing.
     std::string metadata_server_hostname =
         google::cloud::storage::internal::GceMetadataHostname();
+    LOG(INFO) << "ComputeEngineCredentials::DoMetadataServerGetRequest() metadata_server_hostname == " << metadata_server_hostname;
 
     HttpRequestBuilderType request_builder(
         std::move("http://" + metadata_server_hostname + path),
@@ -142,6 +161,7 @@ class ComputeEngineCredentials : public Credentials {
     if (recursive) {
       request_builder.AddQueryParameter("recursive", "true");
     }
+    LOG(INFO) << "ComputeEngineCredentials::DoMetadataServerGetRequest() request is built, about to return";
     return request_builder.BuildRequest().MakeRequest(std::string{});
   }
 
@@ -153,14 +173,17 @@ class ComputeEngineCredentials : public Credentials {
    * for more details.
    */
   Status RetrieveServiceAccountInfo() const {
+    LOG(INFO) << "ComputeEngineCredentials::RetrieveServiceAccountInfo()... ";
     auto response = DoMetadataServerGetRequest(
         "/computeMetadata/v1/instance/service-accounts/" +
             service_account_email_ + "/",
         true);
     if (!response) {
+      LOG(INFO) << "ComputeEngineCredentials::RetrieveServiceAccountInfo() returning status " << response.status().message();
       return std::move(response).status();
     }
     if (response->status_code >= 300) {
+      LOG(INFO) << "ComputeEngineCredentials::RetrieveServiceAccountInfo() returning status >= 300: " << response->status_code;
       return AsStatus(*response);
     }
 
@@ -174,19 +197,24 @@ class ComputeEngineCredentials : public Credentials {
   }
 
   StatusOr<RefreshingCredentialsWrapper::TemporaryToken> Refresh() const {
+    LOG(INFO) << "ComputeEngineCredentials::Refresh() called by refreshing credentials wrapper...";
     auto status = RetrieveServiceAccountInfo();
     if (!status.ok()) {
+    LOG(INFO) << "ComputeEngineCredentials::Refresh() something went wrong retrieving service account info, returning status " << status.message();
       return status;
     }
+    LOG(INFO) << "ComputeEngineCredentials::Refresh() did successfully get service account info. Now doing metadata request.";
 
     auto response = DoMetadataServerGetRequest(
         "/computeMetadata/v1/instance/service-accounts/" +
             service_account_email_ + "/token",
         false);
     if (!response) {
+      LOG(INFO) << "ComputeEngineCredentials::Refresh() something went doing metadata server get request, returning status " << response.status().message();
       return std::move(response).status();
     }
     if (response->status_code >= 300) {
+      LOG(INFO) << "ComputeEngineCredentials::Refresh() status code " << response->status_code << ">= 300... returning response as status";
       return AsStatus(*response);
     }
 
