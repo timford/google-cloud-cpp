@@ -146,9 +146,7 @@ class ComputeEngineCredentials : public Credentials {
    */
   StatusOr<storage::internal::HttpResponse> DoMetadataServerGetRequest(
       std::string const& path, bool recursive) const {
-    LOG(INFO) << "ComputeEngineCredentials::DoMetadataServerGetRequest() before lock... path=" << path << ", recursive=" << recursive;
-    std::unique_lock<std::mutex> lock(mu_);
-    LOG(INFO) << "ComputeEngineCredentials::DoMetadataServerGetRequest() after lock... ";
+    LOG(INFO) << "ComputeEngineCredentials::DoMetadataServerGetRequest() path=" << path << ", recursive=" << recursive;
     // Allows mocking the metadata server hostname for testing.
     std::string metadata_server_hostname =
         google::cloud::storage::internal::GceMetadataHostname();
