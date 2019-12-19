@@ -185,12 +185,20 @@ class ComputeEngineCredentials : public Credentials {
       return AsStatus(*response);
     }
 
+    LOG(INFO) << "ComputeEngineCredentials::RetrieveServiceAccountInfo() about to parse";
     auto metadata = ParseMetadataServerResponse(*response);
     if (!metadata) {
+      LOG(INFO) << "ComputeEngineCredentials::RetrieveServiceAccountInfo() parse failure: " << metadata.status().message();
       return metadata.status();
     }
+    LOG(INFO) << "ComputeEngineCredentials::RetrieveServiceAccountInfo() parse success";
     service_account_email_ = std::move(metadata->email);
     scopes_ = std::move(metadata->scopes);
+    LOG(INFO) << "ComputeEngineCredentials::RetrieveServiceAccountInfo() set service_account_email_=" << service_account_email_ << ", scopes_ = ...";
+    for (auto s : scopes_) {
+      LOG(INFO) << "--- scope: " << s;
+    }
+    LOG(INFO) << "ComputeEngineCredentials::RetrieveServiceAccountInfo() returning";
     return Status();
   }
 
@@ -216,7 +224,11 @@ class ComputeEngineCredentials : public Credentials {
       return AsStatus(*response);
     }
 
-    return ParseComputeEngineRefreshResponse(*response, clock_.now());
+    LOG(INFO) << "ComputeEngineCredentials::Refresh(): got refresh response okay, calling ParseComputeEngineRefreshResponse";
+    auto retval = ParseComputeEngineRefreshResponse(*response, clock_.now());
+
+    LOG(INFO) << "ComputeEngineCredentials::Refresh(): done calling ParseComputeEngineRefreshResponse, returning";
+    return retval;
   }
 
   ClockType clock_;

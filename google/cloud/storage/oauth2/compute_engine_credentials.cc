@@ -28,10 +28,11 @@ inline namespace STORAGE_CLIENT_NS {
 namespace oauth2 {
 StatusOr<ServiceAccountMetadata> ParseMetadataServerResponse(
     storage::internal::HttpResponse const& response) {
-  LOG(INFO) << "ComputeEngineCredentials ParseMetadataServerResponse()...";
+  LOG(INFO) << "ComputeEngineCredentials ParseMetadataServerResponse() ...";
   LOG(INFO) << "payload is " << response.payload;
   auto response_body =
       storage::internal::nl::json::parse(response.payload, nullptr, false);
+  LOG(INFO) << "did finish parsing metadata server response payload...";
   // Note that the "scopes" attribute will always be present and contain a
   // JSON array. At minimum, for the request to succeed, the instance must
   // have been granted the scope that allows it to retrieve info from the
@@ -53,6 +54,11 @@ StatusOr<ServiceAccountMetadata> ParseMetadataServerResponse(
   // otherwise.
   metadata.scopes =
       response_body["scopes"].template get<std::set<std::string>>();
+  LOG(INFO) << "ComputeEngineCredentials::ParseMetadataServerResponse(): email is" << metadata.email << ", scopes are: ";
+  for (auto s : metadata.scopes) {
+    LOG(INFO) << "--- scope: " << s;
+  }
+  LOG(INFO) << "ComputeEngineCredentials::ParseMetadataServerResponse(): returning";
   return metadata;
 }
 
@@ -65,6 +71,7 @@ ParseComputeEngineRefreshResponse(
   // Response should have the attributes "access_token", "expires_in", and
   // "token_type".
   nl::json access_token = nl::json::parse(response.payload, nullptr, false);
+  LOG(INFO) << "did finish parsing refresh response payload...";
   if (access_token.is_discarded() || access_token.count("access_token") == 0 or
       access_token.count("expires_in") == 0 or
       access_token.count("token_type") == 0) {
