@@ -52,8 +52,12 @@ StatusOr<ServiceAccountMetadata> ParseMetadataServerResponse(
   metadata.email = response_body.value("email", "");
   // We need to call the .get<>() helper because the conversion is ambiguous
   // otherwise.
-  metadata.scopes =
-      response_body["scopes"].template get<std::set<std::string>>();
+  if (response_body["scopes"].is_array()) {
+    metadata.scopes =
+        response_body["scopes"].template get<std::set<std::string>>();
+  } else {
+    metadata.scopes = {response_body["scopes"].get<std::string>()};
+  }
   LOG(INFO) << "ComputeEngineCredentials::ParseMetadataServerResponse(): email is" << metadata.email << ", scopes are: ";
   for (auto s : metadata.scopes) {
     LOG(INFO) << "--- scope: " << s;

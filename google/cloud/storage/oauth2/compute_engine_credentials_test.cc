@@ -211,6 +211,23 @@ TEST_F(ComputeEngineCredentialsTest, ParseMetadataServerResponse) {
   EXPECT_TRUE(metadata.scopes.count("scope2"));
 }
 
+/// @test Parsing a metadata server response yields a ServiceAccountMetadata.
+TEST_F(ComputeEngineCredentialsTest, ParseMetadataServerResponseWithNonArrayScope) {
+  std::string email = "foo@bar.baz";
+  std::string svc_acct_info_resp = R"""({
+      "email": ")""" + email + R"""(",
+      "scopes": "scope1"
+  })""";
+
+  auto status =
+      ParseMetadataServerResponse(HttpResponse{200, svc_acct_info_resp, {}});
+  EXPECT_STATUS_OK(status);
+  EXPECT_EQ(status.status().code(), StatusCode::kOk);
+  auto metadata = *status;
+  EXPECT_EQ(metadata.email, email);
+  EXPECT_TRUE(metadata.scopes.count("scope1"));
+}
+
 /// @test Mock a failed refresh response during RetrieveServiceAccountInfo.
 TEST_F(ComputeEngineCredentialsTest, FailedRetrieveServiceAccountInfo) {
   std::string alias = "default";
