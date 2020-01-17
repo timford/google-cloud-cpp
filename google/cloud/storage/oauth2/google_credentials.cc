@@ -25,6 +25,7 @@
 #include <fstream>
 #include <iterator>
 #include <memory>
+#include "glog/logging.h"
 
 namespace google {
 namespace cloud {
@@ -153,13 +154,17 @@ StatusOr<std::unique_ptr<Credentials>> MaybeLoadCredsFromAdcPaths(
 StatusOr<std::shared_ptr<Credentials>> GoogleDefaultCredentials() {
   // 1 and 2) Check if the GOOGLE_APPLICATION_CREDENTIALS environment variable
   // is set or if the gcloud ADC file exists.
+  LOG(INFO) << "About to call MaybeLoadCredsFromAdcPaths";
   auto creds = MaybeLoadCredsFromAdcPaths(true, {}, {});
   if (!creds) {
+    LOG(INFO) << "Error with status: " << creds.status().message();
     return StatusOr<std::shared_ptr<Credentials>>(creds.status());
   }
   if (*creds) {
+    LOG(INFO) << "MaybeLoadCredsFromAdcPaths successful, returning creds.";
     return StatusOr<std::shared_ptr<Credentials>>(std::move(*creds));
   }
+  LOG(INFO) << "MaybeLoadCredsFromAdcPaths not successful. Continuing.";
 
   // 3) Check for implicit environment-based credentials (GCE, GAE Flexible
   // Environment).
@@ -167,9 +172,11 @@ StatusOr<std::shared_ptr<Credentials>> GoogleDefaultCredentials() {
   // the App Engine Flexible Environment, but this has not been explicitly
   // tested, as it requires a custom GAEF runtime.
   if (storage::internal::RunningOnComputeEngineVm()) {
+    LOG(INFO) << "Running on GCE VM. Building and returning GCE credentials.";
     return StatusOr<std::shared_ptr<Credentials>>(
         std::make_shared<ComputeEngineCredentials<>>());
   }
+  LOG(INFO) << "Not running on GCE VM. Returning failure.";
 
   // We've exhausted all search points, thus credentials cannot be constructed.
   return StatusOr<std::shared_ptr<Credentials>>(
